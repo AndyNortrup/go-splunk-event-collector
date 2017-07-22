@@ -1,11 +1,11 @@
 package HTTPSplunkEvent
 
 import (
-	"net/http"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"net/http"
 )
 
 var authHeaderKey string = "Authorization"
@@ -14,9 +14,9 @@ var headerSplunkRequestChannel string = "X-Splunk-Request-Channel"
 var endpoint string = "/services/collector/raw"
 
 type HECWriter struct {
-	server string
-	token string
-	index string
+	server         string
+	token          string
+	index          string
 	requestChannel string
 }
 
@@ -29,17 +29,17 @@ func NewHECWriter(server, token, index string) (*HECWriter, error) {
 	}
 
 	return &HECWriter{
-		server: server + endpoint,
-		token: token,
+		server:         server + endpoint,
+		token:          token,
 		requestChannel: channel.String(),
-		index: index,
+		index:          index,
 	}, nil
 }
 
 func (w HECWriter) Write(p []byte) (n int, err error) {
 	c := http.Client{}
 
-	event := Event{ Event: string(p), Index: "main" }
+	event := Event{Event: string(p), Index: "main"}
 	outBuf := bytes.NewBuffer([]byte{})
 	en := json.NewEncoder(outBuf)
 	en.Encode(event)
@@ -48,7 +48,7 @@ func (w HECWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	request.Header.Add(authHeaderKey, authHeaderUser + w.token)
+	request.Header.Add(authHeaderKey, authHeaderUser+w.token)
 	request.Header.Add(headerSplunkRequestChannel, w.requestChannel)
 	resp, err := c.Do(request)
 
