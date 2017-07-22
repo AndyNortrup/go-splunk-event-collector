@@ -1,5 +1,5 @@
 # go-splunk-event-collector
-A go implementation for sending events to Splunk's HTTP Event Collector
+A go implementation for sending events to [Splunk's HTTP Event Collector|http://dev.splunk.com/view/event-collector/SP-CAAAE6M]
 
 The HEC writer is an io.Writer compliant struct that can be used directly or with the log.Logger object to send logs to
 Splunk Event Collector. Currently uses the raw endpoint so that the contents of your events will be written directly as an event,
