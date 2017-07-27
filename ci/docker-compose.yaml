@@ -1,0 +1,11 @@
+version: '1'
+
+services:
+  tester:
+    build: tester/
+    command: go test go-splunk-event-collector
+    links: splunk
+  splunk:
+    image: hecmachine
+    expose:
+      - "8088"

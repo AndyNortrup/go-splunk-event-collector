@@ -7,30 +7,21 @@ import (
 
 const (
 	index string = "main"
+	source string = "go-splunk-event-collector"
+	sourcetype = "go-splunk-event-collector"
+	host = "unit-tester"
+
 )
 
-//This test should only compile if HECWriter is a valid implementation of io.Writer.
-func TestLogWriterIsWriter(t *testing.T) {
-	server := "address"
-	token := "token"
-	w, err := NewHECWriter(server, token, index)
+func TestLogLocalSplunk(t *testing.T) {
+	server := "http://splunks:8088"
+	token := "122D68E5-EE08-4416-8FE6-A2CFDCF0F0A2"
+	hw, _ := NewHECWriter(server, token, index, host, source, sourcetype,true)
+	l := log.New(hw, "", log.Ldate|log.Ltime)
+
+	err := l.Output(0, "test")
 	if err != nil {
 		t.Fail()
 		t.Log(err)
 	}
-	l := log.New(w, "", 0)
-	l.Println("Test event")
-}
-
-func TestLogLocalSplunk(t *testing.T) {
-	server := "http://localhost:8088"
-	token := "F9D3427D-EAE4-42BA-8DA0-620A8EB2E2B5"
-	hw, _ := NewHECWriter(server, token, index)
-	l := log.New(hw, "", log.Ldate|log.Ltime)
-	l.Print("test")
-	//err := l.Output(0, "test")
-	//if err != nil {
-	//	t.Fail()
-	//	t.Log(err)
-	//}
 }
