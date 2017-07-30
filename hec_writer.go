@@ -13,7 +13,7 @@ import (
 var authHeaderKey string = "Authorization"
 var authHeaderUser string = "Splunk "
 var headerSplunkRequestChannel string = "X-Splunk-Request-Channel"
-var endpoint string = "/services/collector/raw"
+var endpoint string = "/services/collector"
 
 type HECWriter struct {
 	server         string
