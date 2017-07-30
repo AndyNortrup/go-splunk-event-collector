@@ -1,6 +1,8 @@
 # go-splunk-event-collector
 
 [![Build Status](https://travis-ci.org/AndyNortrup/go-splunk-event-collector.svg?branch=master)](https://travis-ci.org/AndyNortrup/go-splunk-event-collector)
+[![Coverage Status](https://coveralls.io/repos/github/AndyNortrup/go-splunk-event-collector/badge.svg?branch=master)](https://coveralls.io/github/AndyNortrup/go-splunk-event-collector?branch=master)
+
 
 A go implementation for sending events to [Splunk's HTTP Event Collector](http://dev.splunk.com/view/event-collector/SP-CAAAE6M)
 

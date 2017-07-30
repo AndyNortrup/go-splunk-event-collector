@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"time"
-	"log"
 )
 
 var authHeaderKey string = "Authorization"
@@ -30,7 +30,7 @@ type HECWriter struct {
 	//TimeFunc is the function used to set the event time when time extraction is not used.
 	TimeFunc func() int64
 
-	client         *http.Client
+	client *http.Client
 }
 
 var InvalidTokenError error = errors.New("Invalid Token")
@@ -137,4 +137,3 @@ func (w *HECWriter) rawTimeFunc() int64 {
 func (w *HECWriter) nowTimeFunc() int64 {
 	return time.Now().UnixNano()
 }
-
