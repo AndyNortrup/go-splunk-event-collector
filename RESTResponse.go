@@ -34,7 +34,7 @@ func NewRESTResponse(input *http.Response) (RESTResponse, error) {
 	return response, err
 }
 
-//String converst the RESTResponse into a string for use in errors or output
+//String converts the RESTResponse into a string for use in errors or output
 func (response RESTResponse) String() string {
 	var buf bytes.Buffer
 	for _, msg := range response.Messages {

@@ -8,12 +8,14 @@ import (
 	"github.com/google/uuid"
 	"net/http"
 	"time"
+	"log"
 )
 
 var authHeaderKey string = "Authorization"
 var authHeaderUser string = "Splunk "
 var headerSplunkRequestChannel string = "X-Splunk-Request-Channel"
-var endpoint string = "/services/collector"
+var endpointRaw string = "/services/collector/raw"
+var endpointStandard string = "/services/collector"
 
 type HECWriter struct {
 	server         string
@@ -23,8 +25,16 @@ type HECWriter struct {
 	host           string
 	source         string
 	sourcetype     string
+	endpoint       string
+
+	//TimeFunc is the function used to set the event time when time extraction is not used.
+	TimeFunc func() int64
+
 	client         *http.Client
 }
+
+var InvalidTokenError error = errors.New("Invalid Token")
+var ServerNotFoundError error = errors.New("Server Not Found")
 
 //NewHECWriter returns a new HECWriter.  The server value should not include the endpoint, which is added by the
 // constructor
@@ -35,13 +45,15 @@ func NewHECWriter(server, token, index, host, source, sourcetype string, allowIn
 	}
 
 	return &HECWriter{
-		server:         server + endpoint,
+		server:         server,
 		token:          token,
 		requestChannel: channel.String(),
 		index:          index,
 		host:           host,
 		source:         source,
 		sourcetype:     sourcetype,
+		endpoint:       endpointRaw,
+		TimeFunc:       func() int64 { return time.Now().UnixNano() },
 		client: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: allowInsecure},
@@ -50,15 +62,14 @@ func NewHECWriter(server, token, index, host, source, sourcetype string, allowIn
 	}, nil
 }
 
-func (w HECWriter) Write(p []byte) (n int, err error) {
+func (w *HECWriter) Write(p []byte) (n int, err error) {
 
-	//TODO: Figure out how to handle setting time in the JSON vs just letting splunk pull it out of the event data (p)
-	event := NewEvent(time.Now().Unix(), w.host, w.source, w.sourcetype, w.index, p)
+	event := NewEvent(w.TimeFunc(), w.host, w.source, w.sourcetype, w.index, p)
 	outBuf := bytes.NewBuffer([]byte{})
 	en := json.NewEncoder(outBuf)
 	en.Encode(event)
 
-	request, err := http.NewRequest(http.MethodPost, w.server, outBuf)
+	request, err := http.NewRequest(http.MethodPost, w.getDest(), outBuf)
 	if err != nil {
 		return 0, err
 	}
@@ -68,11 +79,17 @@ func (w HECWriter) Write(p []byte) (n int, err error) {
 	resp, err := w.client.Do(request)
 
 	if err != nil {
-		return 0, err
+		return 0, ServerNotFoundError
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("%s - %s", resp.StatusCode, resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			return 0, InvalidTokenError
+		}
+
 		return 0, errors.New(resp.Status)
 	}
 
@@ -91,3 +108,33 @@ func (w HECWriter) Write(p []byte) (n int, err error) {
 
 	return len(p), nil
 }
+
+// UseRawEndpoint indicates if data should be submitted to the HEC Raw endpoint or the standard endpoint.
+// Using the Raw endpoint implies that dates are included in the event for extraction.  If you are using the writer as
+// to support a log.Logger, the correct value is probably True because logger should include the date and time
+// at the beginning of the event, which Splunk will then extract.
+//
+// If you happen to be using this as a standalone writer, you might want to set this as off and provide an appropriate
+// HECWriter.TimeFunc() to add the time to the event.
+func (w *HECWriter) UseRawEndpoint(extract bool) {
+	if extract {
+		w.endpoint = endpointRaw
+		w.TimeFunc = w.rawTimeFunc
+	} else {
+		w.endpoint = endpointStandard
+		w.TimeFunc = w.nowTimeFunc
+	}
+}
+
+func (w *HECWriter) getDest() string {
+	return w.server + w.endpoint
+}
+
+func (w *HECWriter) rawTimeFunc() int64 {
+	return 0
+}
+
+func (w *HECWriter) nowTimeFunc() int64 {
+	return time.Now().UnixNano()
+}
+

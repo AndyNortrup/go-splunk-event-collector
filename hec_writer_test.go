@@ -5,32 +5,70 @@ import (
 	"gopkg.in/ory-am/dockertest.v3"
 	"log"
 	"net/http"
-	"os"
 	"testing"
 )
 
 const (
-	index      string = "main"
-	source     string = "go-splunk-event-collector"
-	sourcetype        = "go-splunk-event-collector"
-	host              = "unit-tester"
+	index         string = "main"
+	source        string = "go-splunk-event-collector"
+	sourcetype    string = "go-splunk-event-collector"
+	host          string = "unit-tester"
+	validToken    string = "122D68E5-EE08-4416-8FE6-A2CFDCF0F0A2"
+	invalidToken  string = "invalid-token"
+	invalidServer string = "http://invalidServer:8088"
 )
 
-func TestLogLocalSplunk(t *testing.T) {
-	token := "122D68E5-EE08-4416-8FE6-A2CFDCF0F0A2"
-	hw, _ := NewHECWriter(dockerSplunkHostHEC, token, index, host, source, sourcetype, true)
-	l := log.New(hw, "", log.Ldate|log.Ltime)
+func Test_IntegrationWrite(t *testing.T) {
 
-	err := l.Output(0, "test")
+	pool, resource := startHECContainer()
+	defer pool.Purge(resource)
+
+	validHECHost := hecHostFromResource(resource)
+
+	tokens := []string{validToken, invalidToken, validToken}
+	errValues := []error{nil, InvalidTokenError, ServerNotFoundError}
+	servers := []string{validHECHost, validHECHost, invalidServer}
+
+	for key, token := range tokens {
+		hw, _ := NewHECWriter(servers[key], token, index, host, source, sourcetype, true)
+		l := log.New(hw, "", log.Ldate|log.Ltime)
+		err := l.Output(0, "test")
+		if err != errValues[key] {
+			t.Fail()
+			t.Log(err)
+		}
+	}
+}
+
+func TestHECWriter_UseRawEndpoint(t *testing.T) {
+	w, err := NewHECWriter("", "", "", "", "", "", true)
 	if err != nil {
 		t.Fail()
 		t.Log(err)
 	}
+
+	w.UseRawEndpoint(false)
+	if w.endpoint != endpointStandard {
+		t.Fail()
+		t.Logf("Wrong endpoint returned. Want=%s,\t Got=%s", endpointStandard, w.endpoint)
+	}
+
+	w.UseRawEndpoint(true)
+	if w.endpoint != endpointRaw {
+		t.Fail()
+		t.Logf("Wrong endpoint returned. Want=%s,\t Got=%s", endpointRaw, w.endpoint)
+	}
 }
 
-var dockerSplunkHostHEC string
+func TestHECWriter_RawTimeFunc(t *testing.T) {
+	w := &HECWriter{}
+	if w.rawTimeFunc() != 0 {
+		t.Fail()
+		t.Logf("Wrong value returned. Got=%s,\t Want=0", w.rawTimeFunc())
+	}
+}
 
-func TestMain(m *testing.M) {
+func startHECContainer() (*dockertest.Pool, *dockertest.Resource) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
@@ -45,7 +83,6 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not start Splunk: %s", err)
 	}
 
-	dockerSplunkHostHEC = "https://" + resource.GetBoundIP("8088/tcp") + ":" + resource.GetPort("8088/tcp")
 	dockerSplunkHostWeb := "http://" + resource.GetBoundIP("8000/tcp") + ":" + resource.GetPort("8000/tcp")
 
 	if err := pool.Retry(func() error {
@@ -69,12 +106,9 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Failed to connect to service: %s", err)
 	}
 
-	code := m.Run()
+	return pool, resource
+}
 
-	err = pool.Purge(resource)
-	if err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
-	}
-
-	os.Exit(code)
+func hecHostFromResource(resource *dockertest.Resource) string {
+	return "https://" + resource.GetBoundIP("8088/tcp") + ":" + resource.GetPort("8088/tcp")
 }
