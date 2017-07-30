@@ -1,25 +1,24 @@
 package HTTPSplunkEvent
 
 import (
-	"log"
-	"testing"
-	"gopkg.in/ory-am/dockertest.v3"
-	"os"
-	"net/http"
 	"errors"
+	"gopkg.in/ory-am/dockertest.v3"
+	"log"
+	"net/http"
+	"os"
+	"testing"
 )
 
 const (
-	index string = "main"
-	source string = "go-splunk-event-collector"
-	sourcetype = "go-splunk-event-collector"
-	host = "unit-tester"
-
+	index      string = "main"
+	source     string = "go-splunk-event-collector"
+	sourcetype        = "go-splunk-event-collector"
+	host              = "unit-tester"
 )
 
 func TestLogLocalSplunk(t *testing.T) {
 	token := "122D68E5-EE08-4416-8FE6-A2CFDCF0F0A2"
-	hw, _ := NewHECWriter(dockerSplunkHostHEC, token, index, host, source, sourcetype,true)
+	hw, _ := NewHECWriter(dockerSplunkHostHEC, token, index, host, source, sourcetype, true)
 	l := log.New(hw, "", log.Ldate|log.Ltime)
 
 	err := l.Output(0, "test")
@@ -59,12 +58,11 @@ func TestMain(m *testing.M) {
 
 		defer resp.Body.Close()
 
-		if resp.StatusCode == http.StatusOK  {
+		if resp.StatusCode == http.StatusOK {
 			return nil
 		} else {
 			return errors.New("wrong status")
 		}
-
 
 	}); err != nil {
 		pool.Purge(resource)

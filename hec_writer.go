@@ -39,9 +39,9 @@ func NewHECWriter(server, token, index, host, source, sourcetype string, allowIn
 		token:          token,
 		requestChannel: channel.String(),
 		index:          index,
-		host: host,
-		source: source,
-		sourcetype: sourcetype,
+		host:           host,
+		source:         source,
+		sourcetype:     sourcetype,
 		client: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: allowInsecure},
