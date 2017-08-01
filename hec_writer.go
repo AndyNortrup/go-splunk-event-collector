@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"io"
 )
 
 var authHeaderKey string = "Authorization"
@@ -64,10 +65,11 @@ func NewHECWriter(server, token, index, host, source, sourcetype string, allowIn
 
 func (w *HECWriter) Write(p []byte) (n int, err error) {
 
-	event := NewEvent(w.TimeFunc(), w.host, w.source, w.sourcetype, w.index, p)
-	outBuf := bytes.NewBuffer([]byte{})
-	en := json.NewEncoder(outBuf)
-	en.Encode(event)
+	outBuf, err := w.createEvent(p)
+	if err != nil {
+		log.Print(err)
+		return 0, err
+	}
 
 	request, err := http.NewRequest(http.MethodPost, w.getDest(), outBuf)
 	if err != nil {
@@ -107,6 +109,14 @@ func (w *HECWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
+}
+
+func (w *HECWriter) createEvent(p []byte) (io.Reader, error) {
+	event := NewEvent(w.TimeFunc(), w.host, w.source, w.sourcetype, w.index, string(p))
+	outBuf := bytes.NewBuffer([]byte{})
+	en := json.NewEncoder(outBuf)
+	err := en.Encode(event)
+	return outBuf, err
 }
 
 // UseRawEndpoint indicates if data should be submitted to the HEC Raw endpoint or the standard endpoint.

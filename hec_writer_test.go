@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"encoding/json"
 )
 
 const (
@@ -65,6 +66,26 @@ func TestHECWriter_RawTimeFunc(t *testing.T) {
 	if w.rawTimeFunc() != 0 {
 		t.Fail()
 		t.Logf("Wrong value returned. Got=%s,\t Want=0", w.rawTimeFunc())
+	}
+}
+
+func TestHECWriter_createEvent(t *testing.T) {
+	message := "Hello World!"
+	w, _ := NewHECWriter(invalidServer, validToken, index, host, source, sourcetype, true)
+	buf, err := w.createEvent([]byte(message))
+
+	if err != nil {
+		t.Fail()
+		t.Log(err)
+	}
+
+	dec := json.NewDecoder(buf)
+	outEvent := &Event{}
+	dec.Decode(outEvent)
+
+	if message != outEvent.Text {
+		t.Fail()
+		t.Log("Failed to encode message properly.\t Want=%s,\tGot=%s", message, outEvent.Text)
 	}
 }
 

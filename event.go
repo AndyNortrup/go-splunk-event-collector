@@ -9,10 +9,10 @@ type Event struct {
 	Source     string      `json:"source"`
 	Sourcetype string      `json:"sourcetype"`
 	Index      string      `json:"index"`
-	Text      interface{} `json:"event"`
+	Text       string `json:"event"`
 }
 
-func NewEvent(time int64, host, source, sourcetype, index string, text interface{}) *Event {
+func NewEvent(time int64, host, source, sourcetype, index string, text string) *Event {
 	return &Event{
 		Time: time,
 		Host: host,
