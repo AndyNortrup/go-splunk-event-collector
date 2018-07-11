@@ -99,7 +99,7 @@ func (w *HECWriter) Write(p []byte) (n int, err error) {
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(hecResp)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	decoder.Decode(&hecResp)
